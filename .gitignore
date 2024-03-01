@@ -1,2 +1,5 @@
 /.streamlit
 /env
+/credentials.json
+.gitignore
+__pycache__
