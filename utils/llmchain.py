@@ -1,13 +1,14 @@
 from langchain_google_vertexai import ChatVertexAI
 from langchain_core.output_parsers import StrOutputParser
 import streamlit as st
-from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, MessagesPlaceholder
-from utils.template import template
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from utils.template import system, human
 from langchain.chains.conversation.memory import ConversationBufferMemory
-from langchain.chains  import LLMChain
 from langchain_core.messages import SystemMessage
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain.agents import AgentExecutor, create_json_chat_agent
+from langchain_community.tools import DuckDuckGoSearchRun
 
 
 @st.cache_resource
@@ -25,28 +26,30 @@ if 'gemini_model' not in st.session_state:
   st.session_state['gemini_model'] = 'gemini-pro'
 
 msgs = StreamlitChatMessageHistory(key="langchain_messages")
+memory = ConversationBufferMemory(chat_memory=msgs,memory_key="chat_history",
+                                  return_messages=True, output_key='output', max_output_tokens=1000)
 
-view_message = st.sidebar.expander("View messages in session state")
+# view_message = st.sidebar.expander("View messages in session state")
 
 prompt = ChatPromptTemplate.from_messages([
-  SystemMessage(template),
+  SystemMessage(system),
   MessagesPlaceholder(
-    variable_name="chat_history"
+    variable_name="chat_history", optional=True
   ),
   (
-    'user', '{prompt}'
-  )])
+    'human', human
+  ),
+  MessagesPlaceholder("agent_scratchpad"),])
 
-gemini = prompt | _init_gemini()
+tools = [DuckDuckGoSearchRun(name="search engine")]
 
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, max_output_tokens=1000)
+gemini_agent = create_json_chat_agent(llm=_init_gemini(), prompt=prompt, tools=tools)
 
-gemini_chain = RunnableWithMessageHistory(
-  gemini,
-  lambda session_id:  msgs,
-  input_messages_key="prompt",
-  history_messages_key="chat_history",
-  verbose=True,
-  output_parser= StrOutputParser(),
+gemini_executor = AgentExecutor.from_agent_and_tools(
+  agent=gemini_agent,
+  tools=tools,
+  memory=memory,
+  return_intermediate_steps=True,
+  handle_parsing_errors=True,
 )
 

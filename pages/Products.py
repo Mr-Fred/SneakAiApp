@@ -1,7 +1,9 @@
 import streamlit as st
 from utils.mongodb import get_data
-from utils.template import template
-from utils.llmchain import gemini_chain, msgs
+from utils.template import system
+from utils.llmchain import gemini_executor, msgs
+from langchain_community.callbacks import StreamlitCallbackHandler
+from langchain_core.runnables import RunnableConfig
 
 # def display_prod(prod_list: list):
 
@@ -57,27 +59,30 @@ if prompt := st.chat_input("Enter a prompt..."):
     # st.session_state.langchain_messages.append({"role": 'user', 'content': user_input})
     with st.chat_message('user'):
       st.markdown(user_input)
-    config = {"configurable": {'session_id': "any"}}
-
+    
     with st.chat_message('assistant'):
-      response = gemini_chain.invoke(
-        {'prompt': user_input},
+      st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+      config = RunnableConfig()
+      config['callbacks'] = [st_cb]
+
+      response = gemini_executor.invoke(
+        {'input': user_input},
         config=config
       )
       # st.session_state.messages.append({'role': "assistant", "content": response.content})
-      st.markdown(response.content)
+      st.markdown(response['output'])
   else:
     # st.session_state.langchain_messages.append({"role": 'user', 'content': prompt})
     with st.chat_message('user'):
       st.markdown(prompt)
     config = {"configurable": {'session_id': "any"}}
     with st.chat_message('assistant'):
-      response = gemini_chain.invoke(
-        {'prompt': prompt},
+      response = gemini_executor.invoke(
+        {'input': prompt},
         config=config
       )
       # st.session_state.messages.append({'role': "assistant", "content": response.content})
-      st.markdown(response.content)
+      st.markdown(response['output'])
 
 # display_prod(prod_list=prod_list)
 
