@@ -1,3 +1,4 @@
+from pydantic import ValidationError
 import streamlit as st
 from utils.mongodb import get_data
 from utils.template import system
@@ -70,7 +71,10 @@ if prompt := st.chat_input("Enter a prompt..."):
         config=config
       )
       # st.session_state.messages.append({'role': "assistant", "content": response.content})
-      st.markdown(response['output'])
+      try:
+        st.markdown(response['output'])
+      except ValidationError:
+        st.write(response['output'])
   else:
     # st.session_state.langchain_messages.append({"role": 'user', 'content': prompt})
     with st.chat_message('user'):
@@ -82,7 +86,11 @@ if prompt := st.chat_input("Enter a prompt..."):
         config=config
       )
       # st.session_state.messages.append({'role': "assistant", "content": response.content})
-      st.markdown(response['output'])
+      try:
+        st.markdown(response['output'])
+      except ValidationError:
+        st.write(response['output'])
+
 
 # display_prod(prod_list=prod_list)
 

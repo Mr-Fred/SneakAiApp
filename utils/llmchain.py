@@ -26,7 +26,7 @@ if 'gemini_model' not in st.session_state:
   st.session_state['gemini_model'] = 'gemini-pro'
 
 msgs = StreamlitChatMessageHistory(key="langchain_messages")
-memory = ConversationBufferMemory(chat_memory=msgs,memory_key="chat_history",
+memory = ConversationBufferMemory(chat_memory=msgs, memory_key="chat_history",
                                   return_messages=True, output_key='output', max_output_tokens=1000)
 
 # view_message = st.sidebar.expander("View messages in session state")
@@ -49,7 +49,8 @@ gemini_executor = AgentExecutor.from_agent_and_tools(
   agent=gemini_agent,
   tools=tools,
   memory=memory,
-  return_intermediate_steps=True,
+  return_intermediate_steps=False,
   handle_parsing_errors=True,
+  verbose=True
 )
 
